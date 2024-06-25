@@ -69,8 +69,8 @@ public class OrderService : IOrderService
         using var content = new StringContent(JsonConvert.SerializeObject(order), Encoding.UTF8, "application/json");
 
         _httpClient.DefaultRequestHeaders.Accept.Clear();
-        //HttpResponseMessage response = await _httpClient.PostAsync(AZURE_FUNC_ENDPOINT, content);
-        HttpResponseMessage response = await _httpClient.PostAsync(AZURE_FUNC_LOCAL2_ENDPOINT, content);
+        HttpResponseMessage response = await _httpClient.PostAsync(AZURE_FUNC_ENDPOINT, content);
         //HttpResponseMessage response = await _httpClient.PostAsync(AZURE_FUNC_LOCAL_ENDPOINT, content);
+        //HttpResponseMessage response = await _httpClient.PostAsync(AZURE_FUNC_LOCAL2_ENDPOINT, content);
     }
 }
