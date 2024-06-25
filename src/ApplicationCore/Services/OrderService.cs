@@ -1,4 +1,9 @@
-﻿using System.Linq;
+﻿using System;
+using System.Linq;
+using System.Net.Http.Headers;
+using System.Net.Http;
+using System.Text.Json;
+using System.Text;
 using System.Threading.Tasks;
 using Ardalis.GuardClauses;
 using Microsoft.eShopWeb.ApplicationCore.Entities;
@@ -6,6 +11,7 @@ using Microsoft.eShopWeb.ApplicationCore.Entities.BasketAggregate;
 using Microsoft.eShopWeb.ApplicationCore.Entities.OrderAggregate;
 using Microsoft.eShopWeb.ApplicationCore.Interfaces;
 using Microsoft.eShopWeb.ApplicationCore.Specifications;
+using Newtonsoft.Json;
 
 namespace Microsoft.eShopWeb.ApplicationCore.Services;
 
@@ -15,6 +21,11 @@ public class OrderService : IOrderService
     private readonly IUriComposer _uriComposer;
     private readonly IRepository<Basket> _basketRepository;
     private readonly IRepository<CatalogItem> _itemRepository;
+    private static readonly HttpClient _httpClient = new HttpClient();
+
+    private const string AZURE_FUNC_ENDPOINT = "https://eshopreserverfunc.azurewebsites.net/api/OnOrderCreatedWriteToQueue";
+    private const string AZURE_FUNC_LOCAL_ENDPOINT = "http://localhost:7090/api/OnOrderCreatedWriteToQueue";
+    private const string AZURE_FUNC_LOCAL2_ENDPOINT = "http://localhost:7244/api/OnOrderCreatedWriteToQueue";
 
     public OrderService(IRepository<Basket> basketRepository,
         IRepository<CatalogItem> itemRepository,
@@ -49,5 +60,17 @@ public class OrderService : IOrderService
         var order = new Order(basket.BuyerId, shippingAddress, items);
 
         await _orderRepository.AddAsync(order);
+
+        await SendOrderToQueue(order);
+    }
+
+    private async Task SendOrderToQueue(Order order)
+    {
+        using var content = new StringContent(JsonConvert.SerializeObject(order), Encoding.UTF8, "application/json");
+
+        _httpClient.DefaultRequestHeaders.Accept.Clear();
+        //HttpResponseMessage response = await _httpClient.PostAsync(AZURE_FUNC_ENDPOINT, content);
+        HttpResponseMessage response = await _httpClient.PostAsync(AZURE_FUNC_LOCAL2_ENDPOINT, content);
+        //HttpResponseMessage response = await _httpClient.PostAsync(AZURE_FUNC_LOCAL_ENDPOINT, content);
     }
 }
