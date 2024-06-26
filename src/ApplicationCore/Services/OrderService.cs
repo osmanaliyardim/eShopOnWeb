@@ -1,4 +1,9 @@
-﻿using System.Linq;
+﻿using System;
+using System.Linq;
+using System.Net.Http;
+using System.Net.Http.Headers;
+using System.Text;
+using System.Text.Json;
 using System.Threading.Tasks;
 using Ardalis.GuardClauses;
 using Microsoft.eShopWeb.ApplicationCore.Entities;
@@ -15,6 +20,10 @@ public class OrderService : IOrderService
     private readonly IUriComposer _uriComposer;
     private readonly IRepository<Basket> _basketRepository;
     private readonly IRepository<CatalogItem> _itemRepository;
+
+    private const string PARTITION_KEY = "/buyerId";
+    private const string ORDER_SAVER_FUNC_LOCAL_URL = "<func-local-url>";
+    private const string ORDER_SAVER_FUNC_PROD_URL = "<func-prod-url>";
 
     public OrderService(IRepository<Basket> basketRepository,
         IRepository<CatalogItem> itemRepository,
@@ -49,5 +58,21 @@ public class OrderService : IOrderService
         var order = new Order(basket.BuyerId, shippingAddress, items);
 
         await _orderRepository.AddAsync(order);
+
+        var orderEntity = new OrderEntity<Order>(Guid.NewGuid().ToString(), order, PARTITION_KEY);
+        await SaveOrderToAzureNoSqlAsync(orderEntity);
+    }
+
+    private async Task SaveOrderToAzureNoSqlAsync(OrderEntity<Order> orderEntity)
+    {
+        var jsonData = JsonSerializer.Serialize(orderEntity);
+
+        using HttpClient client = new HttpClient() { BaseAddress = new Uri(ORDER_SAVER_FUNC_PROD_URL) };
+        client.DefaultRequestHeaders.Accept.Clear();
+        client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+
+        using var orderContent = new StringContent(jsonData, Encoding.UTF8, "application/json");
+
+        await client.PostAsync(ORDER_SAVER_FUNC_PROD_URL, orderContent);
     }
 }
