@@ -7,6 +7,9 @@ public record OrderEntity<T>
     [JsonPropertyName("id")]
     public string Id { get; init; }
 
+    [JsonPropertyName("finalPrice")]
+    public decimal finalPrice {  get; set; }
+
     [JsonPropertyName("body")]
     public T Body { get; init; }
 

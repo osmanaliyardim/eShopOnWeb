@@ -65,6 +65,8 @@ public class OrderService : IOrderService
 
     private async Task SaveOrderToAzureNoSqlAsync(OrderEntity<Order> orderEntity)
     {
+        orderEntity.finalPrice = orderEntity.Body.Total();
+        
         var jsonData = JsonSerializer.Serialize(orderEntity);
 
         using HttpClient client = new HttpClient() { BaseAddress = new Uri(ORDER_SAVER_FUNC_PROD_URL) };
