@@ -1,4 +1,8 @@
-﻿using System.Linq;
+﻿using System;
+using System.Linq;
+using System.Net.Http;
+using System.Text;
+using System.Text.Json;
 using System.Threading.Tasks;
 using Ardalis.GuardClauses;
 using Microsoft.eShopWeb.ApplicationCore.Entities;
@@ -15,6 +19,10 @@ public class OrderService : IOrderService
     private readonly IUriComposer _uriComposer;
     private readonly IRepository<Basket> _basketRepository;
     private readonly IRepository<CatalogItem> _itemRepository;
+    private readonly EventPublisher _eventPublisher;
+
+    private const string EGTopicEndpoint = "<event-grid-endpoint>";
+    private const string EGTopicKey = "<event-grid-topic-key>";
 
     public OrderService(IRepository<Basket> basketRepository,
         IRepository<CatalogItem> itemRepository,
@@ -25,6 +33,7 @@ public class OrderService : IOrderService
         _uriComposer = uriComposer;
         _basketRepository = basketRepository;
         _itemRepository = itemRepository;
+        _eventPublisher = new EventPublisher(EGTopicEndpoint, EGTopicKey);
     }
 
     public async Task CreateOrderAsync(int basketId, Address shippingAddress)
@@ -49,5 +58,17 @@ public class OrderService : IOrderService
         var order = new Order(basket.BuyerId, shippingAddress, items);
 
         await _orderRepository.AddAsync(order);
+
+        var orderedItems = new OrderedItems<Order>(Guid.NewGuid().ToString(), order);
+        await SendOrderToEventGrid(orderedItems);
+    }
+
+    private async Task SendOrderToEventGrid(OrderedItems<Order> orderedItems)
+    {
+        orderedItems.finalPrice = orderedItems.Body.Total();
+
+        var jsonData = JsonSerializer.Serialize(orderedItems);
+
+        await _eventPublisher.PublishEventAsync(jsonData, $"orders/{orderedItems.Id}", "OrderCreated");
     }
 }
