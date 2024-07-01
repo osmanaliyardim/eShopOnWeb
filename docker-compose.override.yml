@@ -1,20 +1,41 @@
 version: '3.4'
+
 services:
- eshopwebmvc:
-   environment:
-     - ASPNETCORE_ENVIRONMENT=Docker
-     - ASPNETCORE_URLS=http://+:8080
-   ports:
-     - "5106:8080"
-   volumes:
-     - ~/.aspnet/https:/root/.aspnet/https:ro
-     - ~/.microsoft/usersecrets:/root/.microsoft/usersecrets:ro
- eshoppublicapi:
-   environment:
-     - ASPNETCORE_ENVIRONMENT=Docker
-     - ASPNETCORE_URLS=http://+:8080
-   ports:
-     - "5200:8080"
-   volumes:
-     - ~/.aspnet/https:/root/.aspnet/https:ro
-     - ~/.microsoft/usersecrets:/root/.microsoft/usersecrets:ro
+  eshopwebmvc:
+    build:
+      context: ./src/Web
+    image: eshopwebmvc:local
+    ports:
+      - "8080:80"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+    volumes:
+      - ./eshopwebmvc:/app
+    depends_on:
+      - "sqlserver"
+
+  eshoppublicapi:
+    build:
+      context: ./src/PublicApi
+    image: eshoppublicapi:local
+    ports:
+      - "8081:80"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+    volumes:
+      - ./eshoppublicapi:/app
+    depends_on:
+      - "sqlserver"
+
+  sqlserver:
+    image: eshopali.azurecr.io/mcr.microsoft.com/azure-sql-edge:latest
+    ports:
+      - "1434:1433"
+    environment:
+      - SA_PASSWORD=@someThingComplicated1234
+      - ACCEPT_EULA=Y
+    volumes:
+      - sqlserver_data:/var/opt/mssql
+
+volumes:
+  sqlserver_data:

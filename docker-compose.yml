@@ -2,24 +2,23 @@ version: '3.4'
 
 services:
   eshopwebmvc:
-    image: ${DOCKER_REGISTRY-}eshopwebmvc
-    build:
-      context: .
-      dockerfile: src/Web/Dockerfile
+    image: eshopali.azurecr.io/eshopwebmvc:latest
+    build: .
+    ports:
+      - "8000:80"
     depends_on:
       - "sqlserver"
   eshoppublicapi:
-    image: ${DOCKER_REGISTRY-}eshoppublicapi
-    build:
-      context: .
-      dockerfile: src/PublicApi/Dockerfile
+    image: eshopali.azurecr.io/eshoppublicapi:latest
+    build: .
+    ports:
+      - "6379:80"
     depends_on:
       - "sqlserver"
   sqlserver:
-    image: mcr.microsoft.com/azure-sql-edge
+    image: eshopali.azurecr.io/mcr.microsoft.com/azure-sql-edge:latest
     ports:
       - "1433:1433"
     environment:
       - SA_PASSWORD=@someThingComplicated1234
       - ACCEPT_EULA=Y
-
